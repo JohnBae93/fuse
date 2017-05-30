@@ -1,5 +1,5 @@
 #define FUSE_USE_VERSION 26
-//check contribution
+
 #include <fuse.h>
 #include <stdio.h>
 #include <string.h>
