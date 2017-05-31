@@ -11,8 +11,10 @@ typedef struct jnode {
     char *name;
     struct jnode *next;
     struct jnode *child;
-}JONDE;
+}JNODE;
 
 int main(){
-    printf("hello world");   
+    JNODE jnode;
+    jnode.st.st_ino = 6;
+    printf("inode number : %d", jnode.st.st_ino);   
 }
