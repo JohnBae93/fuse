@@ -1,5 +1,5 @@
 # fuse
 
-Operatin System Project3
+Operating System Project3
 
-File System In User Space
+Filesystem in Userspace (FUSE)
