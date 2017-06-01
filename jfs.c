@@ -160,6 +160,7 @@ static int jfs_mkdir(const char *path, mode_t mode) {
 
     // EEXIST
     // ENOENT
+
     char *parent_path = get_parent_path(path);
 
     JNODE *new_node = make_jnode();/////
