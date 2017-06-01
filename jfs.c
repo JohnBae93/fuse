@@ -5,7 +5,7 @@
 #include <string.h>
 #include <errno.h>
 #include <fcntl.h>
-
+//check
 typedef struct jnode {
     struct stat st;
     char *fname;
