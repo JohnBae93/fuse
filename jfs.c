@@ -13,6 +13,21 @@ typedef struct jnode {
     struct jnode *child;
 } JNODE;
 
+typedef struct data {
+	int blo_ino;
+	char* data;
+	struct data* next;
+}DATA;
+
+typedef struct data_pointer{
+	DATA* head;
+	DATA* bef;
+	DATA* curr;
+	DATA* tail;
+}DATA_P;
+
+DATA_P dptr;
+
 // given directory path, return leaf file name
 char *get_leaf_name(char *path) {
     int len = strlen(path);
@@ -113,6 +128,77 @@ static int jfs_write() {
 
 static int jfs_truncate() {
 }
+
+/******data******/
+
+void insert_data(DATA* node) {
+	if (dptr.head == NULL) {
+		dptr.head = node;
+		dptr.tail = node;
+	}
+	else { //always at the end of list
+		dptr.tail->next = node;
+		dptr.tail = node;
+	}
+
+}
+
+void del_data(DATA* node) {
+	//////////making
+	if (dptr.head == node) {
+		dptr.head = dptr.head->next;
+		if (dptr.head != NULL) {
+			node->next = NULL;
+		}
+	}
+	else {
+		DATA* temp;
+		temp = node;
+		if (node->next != NULL) {
+
+		}
+
+	}
+
+}
+
+DATA* search_data(int ino) {
+	
+	if (dptr.head == NULL) { 
+		return NULL;
+	}
+
+	dptr.curr = dptr.head;
+	dptr.bef = NULL;
+	while (dptr.curr != NULL &&dptr.curr->blo_ino < ino) {
+		if (dptr.curr->next == NULL) {
+			break;
+		}
+		else {
+			dptr.bef = dptr.curr;
+			dptr.curr = dptr.curr->next;
+		}
+	}
+	
+	//search end
+	if (dptr.curr->blo_ino == ino) {
+		return dptr.curr; 
+	}
+	else {
+		return NULL; //not exist
+	}
+
+}
+
+DATA* make_data(int inode) {
+	DATA* n = (DATA*)calloc(1, sizeof(DATA));
+	n->blo_ino = inode;
+	n->data = NULL;
+	n->next = NULL;
+	return n;
+}
+
+
 
 static struct fuse_operation jfs_oper = { // flush?
         .getattr = jfs_getattr,
