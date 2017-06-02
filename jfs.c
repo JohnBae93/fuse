@@ -17,16 +17,15 @@ typedef struct _jnode {
     struct _jnode *child;
 } JNODE;
 
-typedef struct data {
-	int blo_ino;
+typedef struct _data {
+	int d_ino;
 	char* data;
-	struct data* next;
+	struct _data* pre;
+	struct _data* next;
 }DATA;
 
 typedef struct data_pointer{
 	DATA* head;
-	DATA* bef;
-	DATA* curr;
 	DATA* tail;
 }DATA_P;
 
@@ -93,50 +92,60 @@ void insert_data(DATA* node) {
 		dptr.head = node;
 		dptr.tail = node;
 	}
-	else { //always at the end of list
+	else { //always insert at the end of list
 		dptr.tail->next = node;
+		node->pre = dptr.tail;
 		dptr.tail = node;
 	}
 }
 
-void del_data(DATA* node) {
-	//////////making
-	if (dptr.head == node) {
-		dptr.head = dptr.head->next;
-		if (dptr.head != NULL) {
-			node->next = NULL;
-		}
-	}
-	else {
-		DATA* temp;
-		temp = node;
-		if (node->next != NULL) {
+void del_data(DATA* dnode) {
 
+	if (dptr.head == dnode) { //dnode is first node
+		dptr.head = dptr.head->next;
+		if (dptr.head != NULL) { //dnode has next node
+			dptr.head->pre = NULL;
+			dnode->pre = NULL;
+			dnode->next = NULL;
 		}
 	}
+	else { 
+		DATA* temp = dnode;
+		if (dnode->pre != NULL) {
+			dnode->pre->next = temp->next;
+		}
+		if (dnode->next != NULL) {
+			dnode->next->pre = temp->pre;
+		}
+		dnode->pre = NULL;
+		dnode->next = NULL;
+
+	}
+
+	free(dnode->data);
+	free(dnode);
+
+	return;
 }
 
-DATA* search_data(int ino) {
+DATA* search_data(int inode) {
 	
 	if (dptr.head == NULL) { 
 		return NULL;
 	}
-
-	dptr.curr = dptr.head;
-	dptr.bef = NULL;
-	while (dptr.curr != NULL &&dptr.curr->blo_ino < ino) {
-		if (dptr.curr->next == NULL) {
+	DATA* curr = dptr.head;
+	while (curr != NULL &&curr->d_ino < inode) {
+		if (curr->next == NULL) {
 			break;
 		}
 		else {
-			dptr.bef = dptr.curr;
-			dptr.curr = dptr.curr->next;
+			curr = curr->next;
 		}
 	}
-	
 	//search end
-	if (dptr.curr->blo_ino == ino) {
-		return dptr.curr; 
+	
+	if (curr->d_ino == inode) { //exist
+		return curr;
 	}
 	else {
 		return NULL; //not exist
@@ -145,11 +154,13 @@ DATA* search_data(int ino) {
 
 DATA* make_data(int inode) {
 	DATA* n = (DATA*)calloc(1, sizeof(DATA));
-	n->blo_ino = inode;
+	n->d_ino = inode;
 	n->data = NULL;
+	n->pre = NULL;
 	n->next = NULL;
 	return n;
 }
+
 
 
 /*
