@@ -5,12 +5,16 @@
 #include <string.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <assert.h>
+#include <stdlib.h>
+#include <time.h>
+#include <sys/stat.h>
 
-typedef struct jnode {
+typedef struct _jnode {
     struct stat st;
     char *fname;
-    struct jnode *next;
-    struct jnode *child;
+    struct _jnode *next;
+    struct _jnode *child;
 } JNODE;
 
 typedef struct data {
@@ -28,14 +32,15 @@ typedef struct data_pointer{
 
 DATA_P dptr;
 
+short inode_num;
 
 /*
  *  jnode function
  */
 // given directory path, return leaf file name
-char *get_leaf_name(char *path) {
+char *get_leaf_fname(char *path) {
     int len = strlen(path);
-    char *name = path[len - 1];
+    char *name = &path[len - 1];
 
     while (*name != '/') {
         name--;
@@ -45,12 +50,12 @@ char *get_leaf_name(char *path) {
     return name;
 }
 
-void insert_node(JNODE *parent_node, JNODE *new_node) {
+void insert_jnode(JNODE *parent_node, JNODE *new_node) {
     ////// check ENOTDIR
 
     JNODE *tmp;
 
-    if (parent_node->child == NULL || *(parent_node->child) == NULL)
+    if (parent_node->child == NULL)
         parent_node->child = new_node;
     else {
         tmp = parent_node->child;
@@ -59,6 +64,26 @@ void insert_node(JNODE *parent_node, JNODE *new_node) {
     }
 }
 
+JNODE *make_jnode(char *fname, mode_t mode, uid_t uid, gid_t gid) {
+	JNODE *new_jnode = (JNODE*)malloc(sizeof(JNODE));
+	assert(new_jnode);
+
+	new_jnode->fname = fname;
+	new_jnode->st.st_ino = ++inode_num;
+	new_jnode->st.st_mode = mode;
+	new_jnode->st.uid = st_uid;
+	new_jnode->st.gid = st_gid;
+	new_jnode->st.st_atime = time(NULL);
+	new_jnode->st.st_mtime = time(NULL);
+	new_jnode->st.st_atime = time(NULL);
+
+	if(S_ISDIR(mode))
+		new_jnode->st.st_nlink = 2;
+	else
+		new_jnode->st.st_nlink = 1;
+
+	return new_jnode;
+}
 
 /*
  * data function
@@ -135,19 +160,18 @@ static int jfs_getattr(const char *path, struct stat *stbuf) {
 
     memset(stbuf, 0, sizeof(struct stat));
 
-    JNODE *node = search_node(path);
+    JNODE *jnode = search_node(path);
     ////////
-    if (node) {
-        stbuf->st_ino = node->st.st_ino;
-        stbuf->st_mode = node->st.st_mode;
-        stbuf->st_nlink = node->st.nlink;
-        stbuf->st_uid = node->st.st_uid;
-        stbuf->st_gid = node->st.st_gid;
-        stbuf->st_rdev = node->st.st_rdev;
-        stbuf->st_size = node->st.st_size;
-        stbuf->st_atime = node->st.st_atime;
-        stbuf->st_mtime = node->st.st_mtime;
-        stbuf->st_xtime = node->st.st_xtime;
+    if (jnode) {
+        stbuf->st_ino = jnode->st.st_ino;
+        stbuf->st_mode = jnode->st.st_mode;
+        stbuf->st_nlink = jnode->st.nlink;
+        stbuf->st_uid = jnode->st.st_uid;
+        stbuf->st_gid = jnode->st.st_gid;
+        stbuf->st_size = jnode->st.st_size;
+        stbuf->st_atime = jnode->st.st_atime;
+        stbuf->st_mtime = jnode->st.st_mtime;
+        stbuf->st_ctime = jnode->st.ct_ctime;
     } else {
         return -ENOENT;
     }
@@ -156,16 +180,20 @@ static int jfs_getattr(const char *path, struct stat *stbuf) {
 static int jfs_readdir() {
 }
 static int jfs_mkdir(const char *path, mode_t mode) {
-    char *fname = get_leaf_name(path);
+    if(!S_ISDIR(mode))
+		return -ENOTDIR;
+
+	char *fname = get_leaf_fname(path);
 
     // EEXIST
     // ENOENT
 
     char *parent_path = get_parent_path(path);
 
-    JNODE *new_node = make_jnode();/////
-    JNODE *parent_node = search_node(parent_path);
-    insert_node(parent_node, new_node);//////
+    JNODE *new_jnode = make_jnode(fname, mode, getuid(), getgid());/////
+    JNODE *parent_jnode = search_jnode(parent_path);
+
+	insert_jnode(parent_jnode, new_jnode);//////
 
     return 0;
 }
@@ -191,7 +219,7 @@ static int jfs_read() {
 static int jfs_create() {
 }
 
-static int jfs_ultimens() {
+static int jfs_utimens() {
 }
 
 static int jfs_unlink() {
