@@ -50,13 +50,13 @@ char *get_leaf_fname(char *path) {
     return name;
 }
 
-
+/*
 JNODE* search_jnode_path(char* path, JNODE* root) {
 	JNODE *rpath = root;
 	char* pathc = (char*)malloc(sizeof(char)*strlen(path));
 	strcpy(pathc, path);
 
-	char* p = strtok(pathc + 1 / "/");
+	char* p = strtok(pathc + 1 , "/");
 	if (p != NULL) { //search first
 		rpath = search_jnode(p, rpath); 
 		if (rpath == NULL) {
@@ -76,25 +76,28 @@ JNODE* search_jnode_path(char* path, JNODE* root) {
 	}
 	return rpath;
 }
+*/
 
-//get directory path
-char* get_dir_path(char* path) {
-	int len = strlen(path);
-	char* p = &path[len - 1];
-	do {
-		p--;
-	} while (*p != '/');
-	do {
-		p--;
-	} while (*p != '/');
-	char *dir_p = p;
-	dir_p = strtok(dir_p + 1."/");
+//get parent directory path
+///////////////////need to debuging!!!!!!!!!!!!
+char* get_parent_path(char* path) {
+    int len = strlen(path);
+    char *name = &path[len - 1];
 
-	return dir_p;
+    int len_leaf_fname = 0;
+
+    while(*name != '/') {
+        name --;
+        len_leaf_fname ++;
+    }
+    int len_parent_path = len-len_leaf_fname+1;
+    char *parent_path = (char*)malloc(sizeof(char)*len_parent_path);
+    strncpy(parent_path, path, len_parent_path);
+    parent_path[len_parent_path-1] = '\0';
+    return parent_path;
+
 
 }
-
-
 
 
 void insert_jnode(JNODE *parent_node, JNODE *new_node) {
@@ -131,7 +134,7 @@ JNODE *make_jnode(char *fname, mode_t mode, uid_t uid, gid_t gid) {
 	return new_jnode;
 }
 
-
+/*
 JNODE *search_jnode(char *name, JNODE *dir) {
 	JNODE *ret = NULL;
 	JNODE *curr= dir->child;
@@ -140,13 +143,13 @@ JNODE *search_jnode(char *name, JNODE *dir) {
 		return ret;
 		
 	}
-	if (S_ISREG(dir->st.st_mode) { //reg file
+	if (S_ISREG(dir->st.st_mode)) { //reg file
 		return ret;
 	}
 	
 	do {
 		if (strcmp(curr->fname, name) == 0) {
-			res = cur;
+			ret = curr;
 			return ret;
 		}
 		else {
@@ -157,6 +160,8 @@ JNODE *search_jnode(char *name, JNODE *dir) {
 	return ret;
 
 }
+ */
+
 
 void delete_jnode(JNODE* node) {
 
@@ -267,7 +272,38 @@ DATA* make_data(int inode) {
 }
 
 
+/*
+ * given file`s path, find corresponding jnode.
+ */
+JNODE *search_jnode(const char *path) {
+    JNODE *tmp_jnode = root;
+    const char *tmp_path = path;
+    const char *tmp_fname = path;
+    unsigned int len = 1;
+    while(tmp_jnode) {
 
+        while(*tmp_path != '/' && *tmp_path != '\0'){
+            len++;
+            tmp_path++;
+        }
+
+        while(tmp_jnode) {
+            if (strncmp(tmp_fname, tmp_jnode->fname, len) == 0) {
+                if (*tmp_path == '\0') // find!
+                    return tmp_jnode;
+                tmp_jnode = tmp_jnode->child;
+                tmp_path++;
+                tmp_fname = tmp_path;
+                break;
+            } else {
+                tmp_jnode = tmp_jnode->next;
+            }
+        }
+        len = 0;
+    }
+    return NULL; // not exist!!
+
+}
 /*
  * fuse function
  */
@@ -276,18 +312,18 @@ static int jfs_getattr(const char *path, struct stat *stbuf) {
 
     memset(stbuf, 0, sizeof(struct stat));
 
-    JNODE *jnode = search_node(path);
+    JNODE *jnode = search_jnode(path);
     ////////
     if (jnode) {
         stbuf->st_ino = jnode->st.st_ino;
         stbuf->st_mode = jnode->st.st_mode;
-        stbuf->st_nlink = jnode->st.nlink;
+        stbuf->st_nlink = jnode->st.st_nlink;
         stbuf->st_uid = jnode->st.st_uid;
         stbuf->st_gid = jnode->st.st_gid;
         stbuf->st_size = jnode->st.st_size;
         stbuf->st_atime = jnode->st.st_atime;
         stbuf->st_mtime = jnode->st.st_mtime;
-        stbuf->st_ctime = jnode->st.ct_ctime;
+        stbuf->st_ctime = jnode->st.st_ctime;
     } else {
         return -ENOENT;
     }
