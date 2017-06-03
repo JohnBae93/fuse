@@ -15,6 +15,7 @@ typedef struct _jnode {
     char *fname;
     struct _jnode *next;
     struct _jnode *child;
+	struct _jnode *parent;
 } JNODE;
 
 typedef struct _data {
@@ -30,8 +31,8 @@ typedef struct data_pointer{
 }DATA_P;
 
 DATA_P dptr;
-
 short inode_num;
+JNODE *root;
 
 /*
  *  jnode function
@@ -53,7 +54,6 @@ void insert_jnode(JNODE *parent_node, JNODE *new_node) {
     ////// check ENOTDIR
 
     JNODE *tmp;
-
     if (parent_node->child == NULL)
         parent_node->child = new_node;
     else {
@@ -83,6 +83,65 @@ JNODE *make_jnode(char *fname, mode_t mode, uid_t uid, gid_t gid) {
 
 	return new_jnode;
 }
+
+
+JNODE *search_jnode(char *name, JNODE *dir) {
+	JNODE *ret = NULL;
+	JNODE *curr= dir->child;
+	
+	if (curr == NULL) { //not exist
+		return ret;
+		
+	}
+	if (S_ISREG(dir->st.st_mode) { //reg file
+		return ret;
+	}
+	
+	do {
+		if (strcmp(curr->fname, name) == 0) {
+			res = cur;
+			return ret;
+		}
+		else {
+			curr = curr->next;
+		}
+	} while (curr != dir->child && curr != NULL);
+
+	return ret;
+
+}
+
+void delete_jnode(JNODE* node) {
+
+	if (node == NULL) {//not exist 
+		return;
+	}
+	if (S_ISDIR(node->st.st_mode) && node->child != NULL) {
+		return;
+	}
+
+	if (node->parent->child == node) { //delete the first child
+		if (node->next == NULL) { //only one child
+			node->parent->child = NULL;
+		}
+		else {
+			node->parent->child = node->next;
+		}
+	}
+	else{ //delete not the first child
+		JNODE* temp;
+		temp = node->parent->child;
+		while (temp->next != node) {
+			temp = temp->next;
+		} //temp->next is node
+		temp->next = node->next;
+		node->next = NULL;
+	}
+	free(node);
+}
+
+
+
 
 /*
  * data function
@@ -190,6 +249,7 @@ static int jfs_getattr(const char *path, struct stat *stbuf) {
 
 static int jfs_readdir() {
 }
+
 static int jfs_mkdir(const char *path, mode_t mode) {
     if(!S_ISDIR(mode))
 		return -ENOTDIR;
