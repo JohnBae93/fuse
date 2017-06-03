@@ -50,6 +50,53 @@ char *get_leaf_fname(char *path) {
     return name;
 }
 
+
+JNODE* search_jnode_path(char* path, JNODE* root) {
+	JNODE *rpath = root;
+	char* pathc = (char*)malloc(sizeof(char)*strlen(path));
+	strcpy(pathc, path);
+
+	char* p = strtok(pathc + 1 / "/");
+	if (p != NULL) { //search first
+		rpath = search_jnode(p, rpath); 
+		if (rpath == NULL) {
+			return rpath; //no result. just null
+		}
+	}
+
+	while (p != NULL) {
+		p = strtok(NULL, "/");
+		if (p != NULL) {
+			rpath = search_jnode(p, rpath);
+		}
+		if (rpath == NULL) {
+			return NULL;
+		}
+
+	}
+	return rpath;
+}
+
+//get directory path
+char* get_dir_path(char* path) {
+	int len = strlen(path);
+	char* p = &path[len - 1];
+	do {
+		p--;
+	} while (*p != '/');
+	do {
+		p--;
+	} while (*p != '/');
+	char *dir_p = p;
+	dir_p = strtok(dir_p + 1."/");
+
+	return dir_p;
+
+}
+
+
+
+
 void insert_jnode(JNODE *parent_node, JNODE *new_node) {
     ////// check ENOTDIR
 
@@ -139,7 +186,6 @@ void delete_jnode(JNODE* node) {
 	}
 	free(node);
 }
-
 
 
 
