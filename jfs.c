@@ -40,6 +40,10 @@ JNODE *root;
 // given directory path, return leaf file name
 const char *get_leaf_fname(const char *path) {
     int len = strlen(path);
+
+    if(len == 1 && path[0] == '/' )
+        return path;
+
     const char *name = &path[len - 1];
 
     while (*name != '/') {
@@ -50,39 +54,10 @@ const char *get_leaf_fname(const char *path) {
     return name;
 }
 
-/*
-JNODE* search_jnode_path(char* path, JNODE* root) {
-	JNODE *rpath = root;
-	char* pathc = (char*)malloc(sizeof(char)*strlen(path));
-	strcpy(pathc, path);
-
-	char* p = strtok(pathc + 1 , "/");
-	if (p != NULL) { //search first
-		rpath = search_jnode(p, rpath); 
-		if (rpath == NULL) {
-			return rpath; //no result. just null
-		}
-	}
-
-	while (p != NULL) {
-		p = strtok(NULL, "/");
-		if (p != NULL) {
-			rpath = search_jnode(p, rpath);
-		}
-		if (rpath == NULL) {
-			return NULL;
-		}
-
-	}
-	return rpath;
-}
-*/
-
-
 //get parent directory path
 char *get_parent_path(const char *path) {
     int len = strlen(path);
-    char *name = &path[len - 1];
+    const char *name = &path[len - 1];
 
     int len_leaf_fname = 0;
 
@@ -91,13 +66,15 @@ char *get_parent_path(const char *path) {
         len_leaf_fname++;
     }
     int len_parent_path = len - len_leaf_fname;
+    if(len_parent_path == 1)
+        return "/";
     char *parent_path = (char *) malloc(sizeof(char) * len_parent_path);
     strncpy(parent_path, path, len_parent_path);
     parent_path[len_parent_path - 1] = '\0';
     return parent_path;
 }
 
-
+// given parent node and new node, insert
 void insert_jnode(JNODE *parent_node, JNODE *new_node) {
     JNODE *tmp;
     if (parent_node->child == NULL)
@@ -110,12 +87,14 @@ void insert_jnode(JNODE *parent_node, JNODE *new_node) {
     new_node->parent = parent_node;
 }
 
+// given file name and mode, make new node
 JNODE *make_jnode(const char *fname, mode_t mode) {
     JNODE *new_jnode = (JNODE *) malloc(sizeof(JNODE));
     assert(new_jnode);
     int len_fname = strlen(fname);
 
     new_jnode->fname = (char*)malloc(sizeof(char) * len_fname + 1);
+    assert(new_jnode->fname);
 
     strcpy(new_jnode->fname, fname);
 
@@ -134,37 +113,11 @@ JNODE *make_jnode(const char *fname, mode_t mode) {
     else
         new_jnode->st.st_nlink = 1;
 
+    new_jnode->child = NULL;
+    new_jnode->parent = NULL;
+    new_jnode->next = NULL;
     return new_jnode;
 }
-
-/*
-JNODE *search_jnode(char *name, JNODE *dir) {
-	JNODE *ret = NULL;
-	JNODE *curr= dir->child;
-	
-	if (curr == NULL) { //not exist
-		return ret;
-		
-	}
-	if (S_ISREG(dir->st.st_mode)) { //reg file
-		return ret;
-	}
-	
-	do {
-		if (strcmp(curr->fname, name) == 0) {
-			ret = curr;
-			return ret;
-		}
-		else {
-			curr = curr->next;
-		}
-	} while (curr != dir->child && curr != NULL);
-
-	return ret;
-
-}
- */
-
 
 //given file`s path, find corresponding jnode.
 JNODE *search_jnode(const char *path) {
@@ -201,7 +154,7 @@ JNODE *search_jnode(const char *path) {
 int delete_jnode(JNODE *node) {
 
     if (node == NULL) {//not exist
-        return 0;
+        return  0;
     }
 
     // directory not empty.
@@ -304,11 +257,11 @@ DATA *make_data(int inode) {
 }
 
 
-
 /*
  * fuse function
  * All error checking is done hear
  */
+// jfs_getattr : OK!!!!
 static int jfs_getattr(const char *path, struct stat *stbuf) {
     int ret = 0;
 
@@ -331,15 +284,17 @@ static int jfs_getattr(const char *path, struct stat *stbuf) {
     }
 }
 
-static int jfs_readdir() {
+static int jfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
+                       off_t offset, struct fuse_file_info *fi) {
+
 }
 
 static int jfs_mkdir(const char *path, mode_t mode) {
     if (!S_ISDIR(mode))
         return -ENOTDIR;
 
-    // EEXIST
-
+    if(search_jnode(path))
+        return -EEXIST;
 
     const char *fname = get_leaf_fname(path);
     char *parent_path = get_parent_path(path);
@@ -389,7 +344,6 @@ static int jfs_write() {
 static int jfs_truncate() {
 }
 
-
 static struct fuse_operation jfs_oper = { // flush?
         .getattr = jfs_getattr,
         .readdir = jfs_readdir,
@@ -408,7 +362,7 @@ static struct fuse_operation jfs_oper = { // flush?
 };
 
 int main(int argc, char *argv[]) {
-
+    root = make_jnode("/", S_IFDIR);
     return fuse_main(argc, argv, &jfs_oper, NULL);
 
 }
