@@ -1,0 +1,20 @@
+#IncludeRegexLine: ^[ 	]*#[ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+C:/Users/John/Desktop/School/3-2/OS/project3/fuse/test.c
+stdio.h
+-
+stdlib.h
+-
+malloc.h
+-
+string.h
+-
+assert.h
+-
+
