@@ -15,20 +15,20 @@ typedef struct _jnode {
     char *fname;
     struct _jnode *next;
     struct _jnode *child;
-	struct _jnode *parent;
+    struct _jnode *parent;
 } JNODE;
 
 typedef struct _data {
-	int d_ino;
-	char* data;
-	struct _data* pre;
-	struct _data* next;
-}DATA;
+    int d_ino;
+    char *data;
+    struct _data *pre;
+    struct _data *next;
+} DATA;
 
-typedef struct data_pointer{
-	DATA* head;
-	DATA* tail;
-}DATA_P;
+typedef struct data_pointer {
+    DATA *head;
+    DATA *tail;
+} DATA_P;
 
 DATA_P dptr;
 short inode_num;
@@ -38,9 +38,9 @@ JNODE *root;
  *  jnode function
  */
 // given directory path, return leaf file name
-char *get_leaf_fname(char *path) {
+const char *get_leaf_fname(const char *path) {
     int len = strlen(path);
-    char *name = &path[len - 1];
+    const char *name = &path[len - 1];
 
     while (*name != '/') {
         name--;
@@ -78,31 +78,27 @@ JNODE* search_jnode_path(char* path, JNODE* root) {
 }
 */
 
+
 //get parent directory path
-///////////////////need to debuging!!!!!!!!!!!!
-char* get_parent_path(char* path) {
+char *get_parent_path(const char *path) {
     int len = strlen(path);
     char *name = &path[len - 1];
 
     int len_leaf_fname = 0;
 
-    while(*name != '/') {
-        name --;
-        len_leaf_fname ++;
+    while (*name != '/') {
+        name--;
+        len_leaf_fname++;
     }
-    int len_parent_path = len-len_leaf_fname+1;
-    char *parent_path = (char*)malloc(sizeof(char)*len_parent_path);
+    int len_parent_path = len - len_leaf_fname;
+    char *parent_path = (char *) malloc(sizeof(char) * len_parent_path);
     strncpy(parent_path, path, len_parent_path);
-    parent_path[len_parent_path-1] = '\0';
+    parent_path[len_parent_path - 1] = '\0';
     return parent_path;
-
-
 }
 
 
 void insert_jnode(JNODE *parent_node, JNODE *new_node) {
-    ////// check ENOTDIR
-
     JNODE *tmp;
     if (parent_node->child == NULL)
         parent_node->child = new_node;
@@ -111,27 +107,34 @@ void insert_jnode(JNODE *parent_node, JNODE *new_node) {
         parent_node->child = new_node;
         new_node->next = tmp;
     }
+    new_node->parent = parent_node;
 }
 
-JNODE *make_jnode(char *fname, mode_t mode, uid_t uid, gid_t gid) {
-	JNODE *new_jnode = (JNODE*)malloc(sizeof(JNODE));
-	assert(new_jnode);
+JNODE *make_jnode(const char *fname, mode_t mode) {
+    JNODE *new_jnode = (JNODE *) malloc(sizeof(JNODE));
+    assert(new_jnode);
+    int len_fname = strlen(fname);
 
-	new_jnode->fname = fname;
-	new_jnode->st.st_ino = ++inode_num;
-	new_jnode->st.st_mode = mode;
-	new_jnode->st.uid = st_uid;
-	new_jnode->st.gid = st_gid;
-	new_jnode->st.st_atime = time(NULL);
-	new_jnode->st.st_mtime = time(NULL);
-	new_jnode->st.st_atime = time(NULL);
+    new_jnode->fname = (char*)malloc(sizeof(char) * len_fname + 1);
 
-	if(S_ISDIR(mode))
-		new_jnode->st.st_nlink = 2;
-	else
-		new_jnode->st.st_nlink = 1;
+    strcpy(new_jnode->fname, fname);
 
-	return new_jnode;
+    (new_jnode->fname)[len_fname] = '\0';
+
+    new_jnode->st.st_ino = ++inode_num;
+    new_jnode->st.st_mode = mode;
+    new_jnode->st.uid = fuse_get_context()->uid;
+    new_jnode->st.gid = fuse_get_context()->gid;
+    new_jnode->st.st_atime = time(NULL);
+    new_jnode->st.st_mtime = time(NULL);
+    new_jnode->st.st_atime = time(NULL);
+
+    if (S_ISDIR(mode))
+        new_jnode->st.st_nlink = 2;
+    else
+        new_jnode->st.st_nlink = 1;
+
+    return new_jnode;
 }
 
 /*
@@ -163,131 +166,20 @@ JNODE *search_jnode(char *name, JNODE *dir) {
  */
 
 
-void delete_jnode(JNODE* node) {
-
-	if (node == NULL) {//not exist 
-		return;
-	}
-	if (S_ISDIR(node->st.st_mode) && node->child != NULL) {
-		return;
-	}
-
-	if (node->parent->child == node) { //delete the first child
-		if (node->next == NULL) { //only one child
-			node->parent->child = NULL;
-		}
-		else {
-			node->parent->child = node->next;
-		}
-	}
-	else{ //delete not the first child
-		JNODE* temp;
-		temp = node->parent->child;
-		while (temp->next != node) {
-			temp = temp->next;
-		} //temp->next is node
-		temp->next = node->next;
-		node->next = NULL;
-	}
-	free(node);
-}
-
-
-
-/*
- * data function
- */
-void insert_data(DATA* node) {
-	if (dptr.head == NULL) {
-		dptr.head = node;
-		dptr.tail = node;
-	}
-	else { //always insert at the end of list
-		dptr.tail->next = node;
-		node->pre = dptr.tail;
-		dptr.tail = node;
-	}
-}
-
-void del_data(DATA* dnode) {
-
-	if (dptr.head == dnode) { //dnode is first node
-		dptr.head = dptr.head->next;
-		if (dptr.head != NULL) { //dnode has next node
-			dptr.head->pre = NULL;
-			dnode->pre = NULL;
-			dnode->next = NULL;
-		}
-	}
-	else { 
-		DATA* temp = dnode;
-		if (dnode->pre != NULL) {
-			dnode->pre->next = temp->next;
-		}
-		if (dnode->next != NULL) {
-			dnode->next->pre = temp->pre;
-		}
-		dnode->pre = NULL;
-		dnode->next = NULL;
-
-	}
-
-	free(dnode->data);
-	free(dnode);
-
-	return;
-}
-
-DATA* search_data(int inode) {
-	
-	if (dptr.head == NULL) { 
-		return NULL;
-	}
-	DATA* curr = dptr.head;
-	while (curr != NULL &&curr->d_ino < inode) {
-		if (curr->next == NULL) {
-			break;
-		}
-		else {
-			curr = curr->next;
-		}
-	}
-	//search end
-	
-	if (curr->d_ino == inode) { //exist
-		return curr;
-	}
-	else {
-		return NULL; //not exist
-	}
-}
-
-DATA* make_data(int inode) {
-	DATA* n = (DATA*)calloc(1, sizeof(DATA));
-	n->d_ino = inode;
-	n->data = NULL;
-	n->pre = NULL;
-	n->next = NULL;
-	return n;
-}
-
-
-/*
- * given file`s path, find corresponding jnode.
- */
+//given file`s path, find corresponding jnode.
 JNODE *search_jnode(const char *path) {
     JNODE *tmp_jnode = root;
     const char *tmp_path = path;
     const char *tmp_fname = path;
     unsigned int len = 1;
-    while(tmp_jnode) {
+    while (tmp_jnode) {
 
-        while(*tmp_path != '/' && *tmp_path != '\0'){
+        while (*tmp_path != '/' && *tmp_path != '\0') {
             len++;
             tmp_path++;
         }
 
-        while(tmp_jnode) {
+        while (tmp_jnode) {
             if (strncmp(tmp_fname, tmp_jnode->fname, len) == 0) {
                 if (*tmp_path == '\0') // find!
                     return tmp_jnode;
@@ -304,8 +196,118 @@ JNODE *search_jnode(const char *path) {
     return NULL; // not exist!!
 
 }
+
+// delete jnode.
+int delete_jnode(JNODE *node) {
+
+    if (node == NULL) {//not exist
+        return 0;
+    }
+
+    // directory not empty.
+    if (S_ISDIR(node->st.st_mode) && node->child != NULL) {
+        return -1;
+    }
+
+    // delete
+    if (node->parent->child == node) { //delete the first child
+        if (node->next == NULL) { //only one child
+            node->parent->child = NULL;
+        } else {
+            node->parent->child = node->next;
+        }
+    } else { //delete not the first child
+        JNODE *temp;
+        temp = node->parent->child;
+        while (temp->next != node) {
+            temp = temp->next;
+        } //temp->next is node
+        temp->next = node->next;
+        node->next = NULL;
+    }
+    free(node);
+    return 1;
+}
+
+
+/*
+ * data function
+ */
+void insert_data(DATA *node) {
+    if (dptr.head == NULL) {
+        dptr.head = node;
+        dptr.tail = node;
+    } else { //always insert at the end of list
+        dptr.tail->next = node;
+        node->pre = dptr.tail;
+        dptr.tail = node;
+    }
+}
+
+void del_data(DATA *dnode) {
+
+    if (dptr.head == dnode) { //dnode is first node
+        dptr.head = dptr.head->next;
+        if (dptr.head != NULL) { //dnode has next node
+            dptr.head->pre = NULL;
+            dnode->pre = NULL;
+            dnode->next = NULL;
+        }
+    } else {
+        DATA *temp = dnode;
+        if (dnode->pre != NULL) {
+            dnode->pre->next = temp->next;
+        }
+        if (dnode->next != NULL) {
+            dnode->next->pre = temp->pre;
+        }
+        dnode->pre = NULL;
+        dnode->next = NULL;
+
+    }
+
+    free(dnode->data);
+    free(dnode);
+
+    return;
+}
+
+DATA *search_data(int inode) {
+
+    if (dptr.head == NULL) {
+        return NULL;
+    }
+    DATA *curr = dptr.head;
+    while (curr != NULL && curr->d_ino < inode) {
+        if (curr->next == NULL) {
+            break;
+        } else {
+            curr = curr->next;
+        }
+    }
+    //search end
+
+    if (curr->d_ino == inode) { //exist
+        return curr;
+    } else {
+        return NULL; //not exist
+    }
+}
+
+DATA *make_data(int inode) {
+    DATA *n = (DATA *) calloc(1, sizeof(DATA));
+    n->d_ino = inode;
+    n->data = NULL;
+    n->pre = NULL;
+    n->next = NULL;
+    return n;
+}
+
+
+
 /*
  * fuse function
+ * All error checking is done hear
  */
 static int jfs_getattr(const char *path, struct stat *stbuf) {
     int ret = 0;
@@ -333,21 +335,24 @@ static int jfs_readdir() {
 }
 
 static int jfs_mkdir(const char *path, mode_t mode) {
-    if(!S_ISDIR(mode))
-		return -ENOTDIR;
-
-	char *fname = get_leaf_fname(path);
+    if (!S_ISDIR(mode))
+        return -ENOTDIR;
 
     // EEXIST
-    // ENOENT
 
+
+    const char *fname = get_leaf_fname(path);
     char *parent_path = get_parent_path(path);
 
-    JNODE *new_jnode = make_jnode(fname, mode, getuid(), getgid());/////
+    JNODE *new_jnode = make_jnode(fname, mode);
     JNODE *parent_jnode = search_jnode(parent_path);
 
-	insert_jnode(parent_jnode, new_jnode);//////
+    if(!parent_jnode)
+        return -ENOENT;
 
+    insert_jnode(parent_jnode, new_jnode);
+
+    free(parent_path);
     return 0;
 }
 
