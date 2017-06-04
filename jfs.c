@@ -154,7 +154,7 @@ JNODE *search_jnode(const char *path) {
 int delete_jnode(JNODE *node) {
 
     if (node == NULL) {//not exist
-        return  0;
+        return 0;
     }
 
     // directory not empty.
