@@ -452,16 +452,16 @@ static int jfs_create(const char *path, mode_t mode, struct fuse_file_info *fi) 
 	char *leaf = get_leaf_fname(path);
 	char *parent = get_parent_path(path);
 
-	JNODE *newnode = make_jnode(leaf, mode | O_RDWR);
+	JNODE *newnode = make_jnode(leaf, mode);
 	JNODE *pnode = search_jnode(parent);
 	pnode->st.st_nlink++;
 	insert_jnode(pnode, newnode);
-
+    
 	return 0;
 }
 
 
-static int jfs_utimens() {
+static int jfs_utimens(const char *path, const struct timespec tv[2]) {
     printf("utimens!\n");
     return 0;
 }
@@ -502,7 +502,7 @@ static int jfs_write(const char *path, const char *buf, size_t size, off_t offse
 	return size;
 }
 
-static int jfs_truncate() {
+static int jfs_truncate(const char *path, off_t length) {
     printf("truncate!\n");
     return 0;
 }
