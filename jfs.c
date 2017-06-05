@@ -321,13 +321,13 @@ static int jfs_mkdir(const char *path, mode_t mode) {
     //if (!S_ISDIR(mode))
       //  return -ENOTDIR;
 
-    if(!search_jnode(path))
-        return -EEXIST;
+    //if(!search_jnode(path))
+      //  return -EEXIST;
 
     const char *fname = get_leaf_fname(path);
     char *parent_path = get_parent_path(path);
 
-    JNODE *new_jnode = make_jnode(fname, mode);
+    JNODE *new_jnode = make_jnode(fname, mode | S_IFDIR);
     JNODE *parent_jnode = search_jnode(parent_path);
 
     if(!parent_jnode)
