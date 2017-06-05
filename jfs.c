@@ -118,11 +118,9 @@ JNODE *make_jnode(const char *fname, mode_t mode) {
     new_jnode->child = NULL;
     new_jnode->parent = NULL;
     new_jnode->next = NULL;
-    printf("fname : %s\n",new_jnode->fname);
+
     DATA *data = make_data(new_jnode->st.st_ino);
     insert_data(data);
-    printf("return makejnode\n");
-
    
     return new_jnode;
 }
@@ -301,8 +299,7 @@ static int jfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
                        off_t offset, struct fuse_file_info *fi) {
     (void) offset;
     (void) fi;
-   
-    fprintf(stderr,"1\n");
+
     JNODE* jnode = search_jnode(path);
     JNODE* current;
 
@@ -310,21 +307,21 @@ static int jfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
     {
         return -ENOENT; //no such directory
     }
-    printf("2\n");
+
     if(!S_ISDIR(jnode->st.st_mode))
     {
         return -ENOTDIR;	//not a directory
     }
-    printf("3\n");
+
     filler(buf, ".", NULL, 0);	//current
     filler(buf, "..", NULL, 0);	//parent
-    printf("4\n");
+
     current = jnode->child;
     while(current) {
         filler(buf, current->fname, NULL,0);
         current = current->next;
     }
-    printf("5\n");
+
     return 0;
 }
 
@@ -356,7 +353,6 @@ static int jfs_mkdir(const char *path, mode_t mode) {
 
 //done
 static int jfs_chmod(const char* path, mode_t mode) {
-    printf("chmod!\n");
     JNODE *jnode = search_jnode(path);
     if(!jnode)
         return -ENOENT;
@@ -366,11 +362,9 @@ static int jfs_chmod(const char* path, mode_t mode) {
 }
 
 //cat -> open
-static int jfs_open(const char *path, struct fuse_file_info *fi) {  
-    fprintf(stderr,"open!\n");
+static int jfs_open(const char *path, struct fuse_file_info *fi) {
     JNODE *jnode = search_jnode(path);
 
-    printf("open\n");
     if(!jnode)
         return -ENOENT;
     if(S_ISDIR(jnode->st.st_mode))
@@ -381,7 +375,6 @@ static int jfs_open(const char *path, struct fuse_file_info *fi) {
 }
 
 static int jfs_release(const char* path, struct fuse_file_info* fi) {
-	printf("relase!\n");
     (void)fi;
 	(void)path;
 	
@@ -389,7 +382,6 @@ static int jfs_release(const char* path, struct fuse_file_info* fi) {
 }
 
 static int jfs_rmdir(const char* path) {
-    printf("rmdir!\n");
     JNODE *jnode = search_jnode(path);
 
     if(!jnode)
@@ -403,7 +395,6 @@ static int jfs_rmdir(const char* path) {
 
 // done
 static int jfs_rename(const char *old_path, const char *new_path) {
-    printf("rename!\n");
     JNODE *jnode = search_jnode(old_path);
     if(!jnode)
         return -ENOENT;
@@ -456,18 +447,16 @@ static int jfs_create(const char *path, mode_t mode, struct fuse_file_info *fi) 
 	JNODE *pnode = search_jnode(parent);
 	pnode->st.st_nlink++;
 	insert_jnode(pnode, newnode);
-    
+
 	return 0;
 }
 
 
-static int jfs_utimens(const char *path, const struct timespec tv[2]) {
-    printf("utimens!\n");
+static int jfs_utimens(const char* path, const struct timespec tv[2]) {
     return 0;
 }
 
 static int jfs_unlink(const char *path) {
-    printf("unlink!\n");
     JNODE *jnode = search_jnode(path);
     if(!jnode)
         return -ENOENT;
@@ -502,8 +491,7 @@ static int jfs_write(const char *path, const char *buf, size_t size, off_t offse
 	return size;
 }
 
-static int jfs_truncate(const char *path, off_t length) {
-    printf("truncate!\n");
+static int jfs_truncate(const char* path, off_t length) {
     return 0;
 }
 
@@ -525,7 +513,6 @@ static struct fuse_operations jfs_oper = {
 };
 
 int main(int argc, char *argv[]) {
-    printf("start!\n");
     root = make_jnode("/", S_IFDIR);
     return fuse_main(argc, argv, &jfs_oper, NULL);
 }
