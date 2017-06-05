@@ -1,4 +1,4 @@
-#defsdfaine FUSE_USE_VERSION 26
+#define FUSE_USE_VERSION 26
 
 #include <fuse.h>
 #include <stdio.h>
@@ -102,8 +102,8 @@ JNODE *make_jnode(const char *fname, mode_t mode) {
 
     new_jnode->st.st_ino = ++inode_num;
     new_jnode->st.st_mode = mode;
-    new_jnode->st.uid = fuse_get_context()->uid;
-    new_jnode->st.gid = fuse_get_context()->gid;
+    new_jnode->st.st_uid = fuse_get_context()->uid;
+    new_jnode->st.st_gid = fuse_get_context()->gid;
     new_jnode->st.st_atime = time(NULL);
     new_jnode->st.st_mtime = time(NULL);
     new_jnode->st.st_atime = time(NULL);
@@ -481,7 +481,7 @@ static int jfs_truncate() {
     return 0;
 }
 
-static struct fuse_operation jfs_oper = { 
+static struct fuse_operations jfs_oper = {
         .getattr = jfs_getattr,
         .readdir = jfs_readdir,
         .mkdir = jfs_mkdir,
