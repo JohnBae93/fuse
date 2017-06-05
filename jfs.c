@@ -430,7 +430,7 @@ static int jfs_create(const char *path, mode_t mode, struct fuse_file_info *fi) 
 	char *leaf = get_leaf_fname(path);
 	char *parent = get_parent_path(path);
 
-	JNODE *newnode = make_jnode(leaf, mode | O_RDWR, getuid(), getgid());
+	JNODE *newnode = make_jnode(leaf, mode);
 	JNODE *pnode = search_jnode(parent);
 	pnode->st.st_nlink++;
 	insert_jnode(pnode, newnode);
