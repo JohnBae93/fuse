@@ -122,6 +122,9 @@ JNODE *make_jnode(const char *fname, mode_t mode) {
 //given file`s path, find corresponding jnode.
 JNODE *search_jnode(const char *path) {
     JNODE *tmp_jnode = root;
+    if(strlen(path) == 1 && path[0] == '/')
+        return tmp_jnode;
+
     const char *tmp_path = path;
     const char *tmp_fname = path;
     unsigned int len = 1;
@@ -286,14 +289,39 @@ static int jfs_getattr(const char *path, struct stat *stbuf) {
 
 static int jfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
                        off_t offset, struct fuse_file_info *fi) {
+    (void) offset;
+    (void) fi;
 
+    JNODE* jnode = search_jnode(path);
+    JNODE* current;
+
+    if(jnode == NULL)
+    {
+        return -ENOENT; //no such directory
+    }
+
+    if(!S_ISDIR(jnode->st.st_mode))
+    {
+        return -ENOTDIR;	//not a directory
+    }
+
+    filler(buf, ".", NULL, 0);	//current
+    filler(buf, "..", NULL, 0);	//parent
+
+    current = jnode->child;
+    while(current) {
+        filler(buf, current->fname, NULL,0);
+        current = current->next;
+    }
+
+    return 0;
 }
 
 static int jfs_mkdir(const char *path, mode_t mode) {
     if (!S_ISDIR(mode))
         return -ENOTDIR;
 
-    if(search_jnode(path))
+    if(!search_jnode(path))
         return -EEXIST;
 
     const char *fname = get_leaf_fname(path);
@@ -304,6 +332,8 @@ static int jfs_mkdir(const char *path, mode_t mode) {
 
     if(!parent_jnode)
         return -ENOENT;
+    if(!S_ISDIR(parent_jnode->st.st_mode))
+        return -ENOTDIR;
 
     insert_jnode(parent_jnode, new_jnode);
 
@@ -311,19 +341,53 @@ static int jfs_mkdir(const char *path, mode_t mode) {
     return 0;
 }
 
-static int jfs_chmod() {
+static int jfs_chmod(const char* path, mode_t mode) {
+    JNODE *jnode = search_jnode(path);
+    if(!jnode)
+        return -ENOENT;
+
+    jnode->st.st_mode = mode;
+    return 0;
 }
 
-static int jfs_open() {
+static int jfs_open(const char *path, struct fuse_file_info *fi) {
+    JNODE *jnode = search_jnode(path);
+
+    if(!jnode)
+        return -ENOENT;
+    if(S_ISDIR(jnode->st.st_mode))
+        return -EISDIR;
+
+    return 0;
+
 }
 
-static int jfs_release() {
+static int jfs_release(const char* path, struct fuse_file_info* fi) {
+    return 0;
 }
 
-static int jfs_rmdir() {
+static int jfs_rmdir(const char* path) {
+    JNODE *jnode = search_jnode(path);
+
+    if(!jnode)
+        return -ENOENT;
+    if(jnode->child)
+        return -ENOTEMPTY;
+
+    delete_jnode(jnode);
+    return 0;
 }
 
-static int jfs_rename() {
+static int jfs_rename(const char *old_path, const char *new_path) {
+    JNODE *jnode = search_jnode(old_path);
+    if(!jnode)
+        return -ENOENT;
+
+    const char *new_fname = get_leaf_fname(new_path);
+    jnode->fname = (char*)realloc(jnode->fname, sizeof(char) * strlen(new_fname) + 1);
+    strcpy(jnode->fname, new_fname);
+
+    return 0;
 }
 
 static int jfs_read() {
@@ -333,17 +397,32 @@ static int jfs_create() {
 }
 
 static int jfs_utimens() {
+    return 0;
 }
 
-static int jfs_unlink() {
+static int jfs_unlink(const char *path) {
+    JNODE *jnode = search_jnode(path);
+    if(!jnode)
+        return -ENOENT;
+    if(jnode->child)
+        return -ENOTEMPTY;
+
+    DATA *data = search_data(jnode->st.st_ino);
+    del_data(data);
+    delete_jnode(jnode);
+
+    return 0;
 }
 
 static int jfs_write() {
 }
 
 static int jfs_truncate() {
+    return 0;
 }
-
+static int jfs_flush() {
+    return 0;
+}
 static struct fuse_operation jfs_oper = { // flush?
         .getattr = jfs_getattr,
         .readdir = jfs_readdir,
@@ -359,6 +438,7 @@ static struct fuse_operation jfs_oper = { // flush?
         .unlink = jfs_unlink,
         .write = jfs_write,
         .truncate = jfs_truncate,
+        .flush = jfs_flush(),
 };
 
 int main(int argc, char *argv[]) {

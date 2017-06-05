@@ -195,6 +195,9 @@ JNODE *make_jnode(const char *fname) {
 //given file`s path, find corresponding jnode.
 JNODE *search_jnode(const char *path) {
     JNODE *tmp_jnode = root;
+    if(strlen(path) == 1 && path[0] == '/')
+        return tmp_jnode;
+
     const char *tmp_path = path;
     const char *tmp_fname = path;
     unsigned int len = 1;
@@ -247,9 +250,9 @@ int delete_jnode(JNODE *node) {
 
 
 int main() {
-    char root_fname = '/';
+    char *root_fname = "/";
     root = (JNODE*)malloc(sizeof(JNODE));
-    root->fname = &root_fname;
+    root->fname = root_fname;
     root->child = NULL;
 
 
@@ -274,7 +277,7 @@ int main() {
     insert_jnode(a,l);
 
     JNODE *find = search_jnode("/abc/xyz/nan");
-    delete_jnode(n); // del nan
+    //delete_jnode(n); // del nan
     find = search_jnode("/");
 
     if(find)
