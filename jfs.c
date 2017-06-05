@@ -106,7 +106,7 @@ JNODE *make_jnode(const char *fname, mode_t mode) {
     new_jnode->st.st_gid = fuse_get_context()->gid;
     new_jnode->st.st_atime = time(NULL);
     new_jnode->st.st_mtime = time(NULL);
-    new_jnode->st.st_atime = time(NULL);
+    new_jnode->st.st_ctime = time(NULL);
 
     if (S_ISDIR(mode))
         new_jnode->st.st_nlink = 2;
@@ -321,13 +321,13 @@ static int jfs_mkdir(const char *path, mode_t mode) {
     //if (!S_ISDIR(mode))
       //  return -ENOTDIR;
 
-    //if(!search_jnode(path))
-      //  return -EEXIST;
+    if(search_jnode(path))
+        return -EEXIST;
 
     const char *fname = get_leaf_fname(path);
     char *parent_path = get_parent_path(path);
 
-    JNODE *new_jnode = make_jnode(fname, mode | S_IFDIR);
+    JNODE *new_jnode = make_jnode(fname, mode);
     JNODE *parent_jnode = search_jnode(parent_path);
 
     if(!parent_jnode)
@@ -422,8 +422,7 @@ static int jfs_read(const char *path, char *buf, size_t size, off_t offset) {
 
 //create and open new file
 static int jfs_create(const char *path, mode_t mode, struct fuse_file_info *fi) {
-	JNODE *temp = search_jnode(path);
-	if (temp != NULL) { //already exist name
+	if (search_jnode(path)) { //already exist name
 		return -EEXIST;
 	}
 
