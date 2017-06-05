@@ -363,7 +363,10 @@ static int jfs_open(const char *path, struct fuse_file_info *fi) {
 }
 
 static int jfs_release(const char* path, struct fuse_file_info* fi) {
-    return 0;
+	(void)fi;
+	(void)path;
+	
+	return 0;
 }
 
 static int jfs_rmdir(const char* path) {
@@ -390,11 +393,51 @@ static int jfs_rename(const char *old_path, const char *new_path) {
     return 0;
 }
 
-static int jfs_read() {
+//read data from opened file
+static int jfs_read(const char *path, char *buf, size_t size, off_t offset) {
+
+	JNODE *jnode = search_jnode(path);
+	if (jnode == NULL) { //no jnode
+		return -ENOENT;
+	}
+
+	DATA *jdata = search_data(jnode->st.st_ino);
+	if (jdata == NULL) { //no data node
+		return -ENOENT;
+	}
+
+	int leng = jnode->st.st_size;
+	if (leng > offset) {
+		if (offset + size > leng) {
+			size = leng - offset;
+		}
+		memcpy(buf, jdata->data + offset, size); //data to buf
+	}
+	else {
+		size = 0;
+	}
+
+	return size; //number of bytes
 }
 
-static int jfs_create() {
+//create and open new file
+static int jfs_create(const char *path, mode_t mode, struct fuse_file_info *fi) {
+	JNODE *temp = search_jnode(path);
+	if (temp != NULL) { //already exist name
+		return -EEXIST;
+	}
+
+	char *leaf = get_leaf_fname(path);
+	char *parent = get_parent_path(path);
+
+	JNODE *newnode = make_jnode(leaf, mode | O_RDWR, getuid(), getgid());
+	JNODE *pnode = search_jnode(parent);
+	pnode->st.st_nlink++;
+	insert_jnode(pnode, newnode);
+
+	return 0;
 }
+
 
 static int jfs_utimens() {
     return 0;
@@ -414,16 +457,31 @@ static int jfs_unlink(const char *path) {
     return 0;
 }
 
-static int jfs_write() {
+//write data to opened file
+static int jfs_write(const char *path, const char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
+	(void)fi;
+
+	JNODE *jnode = search_jnode(path);
+	if (jnode == NULL) {//no jnode
+		return -ENOENT;
+	}
+
+	DATA *jdata = search_data(jnode->st.st_ino);
+	if (jdata == NULL) { //no data
+		return -ENOENT;
+	}
+
+	jdata->data = (char*)realloc(jdata->data, size);
+	strcpy(jdata->data, buf);
+	jnode->st.st_size = size;
+	return size;
 }
 
 static int jfs_truncate() {
     return 0;
 }
-static int jfs_flush() {
-    return 0;
-}
-static struct fuse_operation jfs_oper = { // flush?
+
+static struct fuse_operation jfs_oper = { 
         .getattr = jfs_getattr,
         .readdir = jfs_readdir,
         .mkdir = jfs_mkdir,
@@ -438,7 +496,6 @@ static struct fuse_operation jfs_oper = { // flush?
         .unlink = jfs_unlink,
         .write = jfs_write,
         .truncate = jfs_truncate,
-        .flush = jfs_flush(),
 };
 
 int main(int argc, char *argv[]) {
