@@ -318,8 +318,8 @@ static int jfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 }
 
 static int jfs_mkdir(const char *path, mode_t mode) {
-    if (!S_ISDIR(mode))
-        return -ENOTDIR;
+    //if (!S_ISDIR(mode))
+      //  return -ENOTDIR;
 
     if(!search_jnode(path))
         return -EEXIST;
