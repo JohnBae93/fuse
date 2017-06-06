@@ -229,7 +229,7 @@ void del_data(DATA *dnode) {
 			dnode->pre->next = dnode->next;
 		}
 		if (dnode->next != NULL) {
-			dnode->next->pre = temp->pre;
+			dnode->next->pre = dnode->pre;
 		}
 		dnode->pre = NULL;
 		dnode->next = NULL;
