@@ -1,3 +1,0 @@
-C:/Users/John/Desktop/School/3-2/OS/project3/fuse/cmake-build-debug/CMakeFiles/edit_cache.dir
-C:/Users/John/Desktop/School/3-2/OS/project3/fuse/cmake-build-debug/CMakeFiles/main.dir
-C:/Users/John/Desktop/School/3-2/OS/project3/fuse/cmake-build-debug/CMakeFiles/rebuild_cache.dir
