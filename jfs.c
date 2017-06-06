@@ -475,6 +475,8 @@ static int jfs_unlink(const char *path) {
         return -ENOTEMPTY;
 
     DATA *data = search_data(jnode->st.st_ino);
+    if(!data)
+        return 0;
     del_data(data);
     delete_jnode(jnode);
 
