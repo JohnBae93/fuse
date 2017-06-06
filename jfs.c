@@ -208,30 +208,38 @@ void insert_data(DATA *node) {
 
 void del_data(DATA *dnode) {
 
-    if (dptr.head == dnode) { //dnode is first node
-        dptr.head = dptr.head->next;
-        if (dptr.head != NULL) { //dnode has next node
-            dptr.head->pre = NULL;
-            dnode->pre = NULL;
-            dnode->next = NULL;
-        }
-    } else {
-        DATA *temp = dnode;
-        if (dnode->pre != NULL) {
-            dnode->pre->next = temp->next;
-        }
-        if (dnode->next != NULL) {
-            dnode->next->pre = temp->pre;
-        }
-        dnode->pre = NULL;
-        dnode->next = NULL;
+	if (dptr.head == dnode) { //dnode is first node
+		dptr.head = dptr.head->next;
+		if (dptr.head != NULL) { //dnode has next node
+			dptr.head->pre = NULL;
+		}
+		else { //dnode is first and last node
+			dptr.tail == NULL;
+		}
+		dnode->pre = NULL;
+		dnode->next = NULL;
+	}
+	else if (dptr.tail == dnode) { //dnode is not first, but last node
+		dptr.tail = dnode->pre;
+		dptr.tail->next = NULL;
 
-    }
+	}
+	else {
+		if (dnode->pre != NULL) {
+			dnode->pre->next = dnode->next;
+		}
+		if (dnode->next != NULL) {
+			dnode->next->pre = temp->pre;
+		}
+		dnode->pre = NULL;
+		dnode->next = NULL;
 
-    free(dnode->data);
-    free(dnode);
+	}
 
-    return;
+	free(dnode->data);
+	free(dnode);
+
+	return;
 }
 
 DATA *search_data(int inode) {
@@ -464,7 +472,9 @@ static int jfs_unlink(const char *path) {
         return -ENOTEMPTY;
 
     DATA *data = search_data(jnode->st.st_ino);
-    del_data(data);
+	if (data != NULL) {
+		del_data(data);
+	}
     delete_jnode(jnode);
 
     return 0;
