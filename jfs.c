@@ -204,6 +204,7 @@ void insert_data(DATA *node) {
         node->pre = dptr.tail;
         dptr.tail = node;
     }
+    return;
 }
 
 void del_data(DATA *dnode) {
@@ -212,12 +213,13 @@ void del_data(DATA *dnode) {
 		dptr.head = dptr.head->next;
 		if (dptr.head != NULL) { //dnode has next node
 			dptr.head->pre = NULL;
-		}
+		    dnode->pre = NULL;
+		    dnode->next = NULL;
+        }
 		else { //dnode is first and last node
 			dptr.tail == NULL;
 		}
-		dnode->pre = NULL;
-		dnode->next = NULL;
+		
 	}
 	else if (dptr.tail == dnode) { //dnode is not first, but last node
 		dptr.tail = dnode->pre;
@@ -232,8 +234,8 @@ void del_data(DATA *dnode) {
 		if (dnode->next != NULL) {
 			dnode->next->pre = dnode->pre;
 		}
-		dnode->pre = NULL;
-		dnode->next = NULL;
+		//dnode->pre = NULL;
+		//dnode->next = NULL;
 
 	}
 
